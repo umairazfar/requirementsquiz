@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Requirements Quiz</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Inter Font -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-blue-50 to-indigo-100 p-8 min-h-screen">
+
+    <div id="app" class="max-w-4xl mx-auto">
+        <!-- Content will be rendered here by JavaScript -->
+    </div>
+
+    <script>
+        // Data for the quiz
+        const projects = {
+            ecommerce: {
+                name: "E-commerce Platform",
+                requirements: [
+                    { text: "The system shall allow users to add items to shopping cart", type: "Functional" },
+                    { text: "The system must process 1000 concurrent users without performance degradation", type: "Non-functional" },
+                    { text: "The system shall support multiple payment methods including credit cards and PayPal", type: "Functional" },
+                    { text: "All customer data must be encrypted using AES-256 encryption", type: "Non-functional" },
+                    { text: "The system shall comply with PCI DSS standards for payment processing", type: "Domain" },
+                    { text: "Users shall be able to search products by category, price, and brand", type: "Functional" },
+                    { text: "The website must load within 3 seconds on standard broadband connection", type: "Non-functional" },
+                    { text: "The system shall integrate with third-party shipping APIs (FedEx, UPS, DHL)", type: "Domain" },
+                    { text: "Users shall receive email notifications for order confirmations", type: "Functional" },
+                    { text: "The system must comply with GDPR regulations for EU customers", type: "Domain" }
+                ]
+            },
+            library: {
+                name: "Library Management System",
+                requirements: [
+                    { text: "The system shall allow librarians to check out books to members", type: "Functional" },
+                    { text: "The system must be available 99.9% of the time during operating hours", type: "Non-functional" },
+                    { text: "The system shall track overdue books and calculate fines", type: "Functional" },
+                    { text: "All book records must follow the Dewey Decimal Classification system", type: "Domain" },
+                    { text: "The database must support at least 100,000 book records", type: "Non-functional" },
+                    { text: "Members shall be able to reserve books that are currently checked out", type: "Functional" },
+                    { text: "The system must comply with library privacy laws and patron confidentiality", type: "Domain" },
+                    { text: "Response time for book searches must not exceed 2 seconds", type: "Non-functional" },
+                    { text: "The system shall generate overdue notices automatically", type: "Functional" },
+                    { text: "The system must integrate with the national library catalog system", type: "Domain" }
+                ]
+            },
+            banking: {
+                name: "Online Banking System",
+                requirements: [
+                    { text: "Users shall be able to transfer funds between their own accounts", type: "Functional" },
+                    { text: "The system must comply with federal banking regulations (FDIC)", type: "Domain" },
+                    { text: "All transactions must be processed within 5 seconds", type: "Non-functional" },
+                    { text: "The system shall provide account balance inquiry functionality", type: "Functional" },
+                    { text: "The system must use multi-factor authentication for login", type: "Non-functional" },
+                    { text: "All financial data must comply with SOX compliance requirements", type: "Domain" },
+                    { text: "Users shall be able to view transaction history for the past 12 months", type: "Functional" },
+                    { text: "The system must be operational 24/7 with maximum 99.95% uptime", type: "Non-functional" },
+                    { text: "The system shall integrate with SWIFT network for international transfers", type: "Domain" },
+                    { text: "Users shall receive SMS alerts for large transactions", type: "Functional" }
+                ]
+            },
+            student: {
+                name: "Student Information System",
+                requirements: [
+                    { text: "The system shall allow students to register for courses online", type: "Functional" },
+                    { text: "The system must handle 5000 concurrent student logins during registration", type: "Non-functional" },
+                    { text: "Grade calculations must follow the institutional GPA scale (4.0 system)", type: "Domain" },
+                    { text: "Students shall be able to view their current grades and transcripts", type: "Functional" },
+                    { text: "All student records must be backed up daily with 99.9% data integrity", type: "Non-functional" },
+                    { text: "The system must comply with FERPA regulations for student privacy", type: "Domain" },
+                    { text: "Faculty shall be able to enter and modify grades for their courses", type: "Functional" },
+                    { text: "The system interface must be accessible to users with disabilities (WCAG 2.1)", type: "Non-functional" },
+                    { text: "Course prerequisites must be validated according to academic catalog rules", type: "Domain" },
+                    { text: "The system shall generate automated degree audit reports", type: "Functional" }
+                ]
+            },
+            hospital: {
+                name: "Hospital Management System",
+                requirements: [
+                    { text: "The system shall allow doctors to access patient medical records", type: "Functional" },
+                    { text: "All patient data must comply with HIPAA privacy regulations", type: "Domain" },
+                    { text: "The system must respond to emergency queries within 1 second", type: "Non-functional" },
+                    { text: "Nurses shall be able to update patient vital signs and medications", type: "Functional" },
+                    { text: "The system must maintain 99.99% uptime for critical care units", type: "Non-functional" },
+                    { text: "Medical codes must follow ICD-10 classification standards", type: "Domain" },
+                    { text: "The system shall schedule patient appointments and manage room allocation", type: "Functional" },
+                    { text: "Patient data must be encrypted both in transit and at rest", type: "Non-functional" },
+                    { text: "The system must integrate with laboratory information systems (LIS)", type: "Domain" },
+                    { text: "The system shall generate automated billing based on treatments provided", type: "Functional" }
+                ]
+            }
+        };
+
+        // Global state variables
+        let selectedProject = null;
+        let currentQuestion = 0;
+        let score = 0;
+        let feedback = null;
+        let showFeedback = false;
+        let quizComplete = false;
+        let countdown = 5;
+        let isPaused = false;
+        let timeoutId = null;
+
+        const appDiv = document.getElementById('app');
+
+        // Function to render the UI based on the current state
+        function render() {
+            if (!selectedProject) {
+                renderProjectSelection();
+            } else if (quizComplete) {
+                renderQuizComplete();
+            } else {
+                renderQuizQuestion();
+            }
+        }
+
+        function renderProjectSelection() {
+            appDiv.innerHTML = `
+                <div class="max-w-4xl mx-auto">
+                    <div class="text-center mb-12">
+                        <h1 class="text-4xl font-bold text-gray-800 mb-4">
+                            Software Requirements Classification Quiz
+                        </h1>
+                        <p class="text-lg text-gray-600">
+                            Test your knowledge of Functional, Non-functional, and Domain requirements
+                        </p>
+                    </div>
+                    
+                    <div class="bg-white rounded-lg shadow-lg p-8">
+                        <h2 class="text-2xl font-semibold text-gray-800 mb-6 text-center">
+                            Choose a Project
+                        </h2>
+                        <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6" id="project-buttons">
+                            ${Object.keys(projects).map(key => `
+                                <button
+                                    data-project-key="${key}"
+                                    class="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white p-6 rounded-lg shadow-md transition-all duration-200 transform hover:scale-105"
+                                >
+                                    <h3 class="text-lg font-semibold">${projects[key].name}</h3>
+                                </button>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.getElementById('project-buttons').addEventListener('click', (event) => {
+                const button = event.target.closest('button');
+                if (button) {
+                    handleProjectSelect(button.dataset.projectKey);
+                }
+            });
+        }
+
+        function renderQuizComplete() {
+            const resultMessage = score >= 80 ? "🎉 Excellent work!" : score >= 60 ? "👍 Good job!" : "📚 Keep studying!";
+            appDiv.innerHTML = `
+                <div class="max-w-2xl mx-auto">
+                    <div class="bg-white rounded-lg shadow-lg p-8 text-center">
+                        <h1 class="text-3xl font-bold text-gray-800 mb-6">Quiz Complete!</h1>
+                        <div class="mb-8">
+                            <div class="text-6xl font-bold text-blue-600 mb-2">${score}</div>
+                            <div class="text-xl text-gray-600">out of 100 points</div>
+                            <div class="mt-4">
+                                <div class="text-lg">${resultMessage}</div>
+                            </div>
+                        </div>
+                        <div class="space-y-4">
+                            <button
+                                id="retry-project-btn"
+                                class="bg-blue-500 hover:bg-blue-600 text-white px-8 py-3 rounded-lg font-semibold mx-2"
+                            >
+                                Retry Same Project
+                            </button>
+                            <button
+                                id="choose-different-btn"
+                                class="bg-gray-500 hover:bg-gray-600 text-white px-8 py-3 rounded-lg font-semibold mx-2"
+                            >
+                                Choose Different Project
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.getElementById('retry-project-btn').addEventListener('click', () => handleProjectSelect(selectedProject));
+            document.getElementById('choose-different-btn').addEventListener('click', resetQuiz);
+        }
+
+        function renderQuizQuestion() {
+            const currentReq = projects[selectedProject].requirements[currentQuestion];
+            const progress = ((currentQuestion + 1) / 10) * 100;
+
+            let feedbackSection = '';
+            if (showFeedback) {
+                const feedbackClass = feedback.correct 
+                    ? 'bg-green-100 text-green-800 border border-green-300' 
+                    : 'bg-red-100 text-red-800 border border-red-300';
+                
+                let actionButton = '';
+                if (!isPaused) {
+                    actionButton = `
+                        <button
+                            id="pause-btn"
+                            class="bg-yellow-500 hover:bg-yellow-600 text-white px-6 py-3 rounded-lg font-semibold text-lg transition-colors duration-200"
+                        >
+                            Pause (${countdown}s)
+                        </button>
+                        <p class="text-sm text-gray-600 mt-2">
+                            Next question in ${countdown} seconds or click to pause
+                        </p>
+                    `;
+                } else {
+                    actionButton = `
+                        <button
+                            id="continue-btn"
+                            class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold text-lg transition-colors duration-200"
+                        >
+                            Continue to Next Question
+                        </button>
+                        <p class="text-sm text-gray-600 mt-2">
+                            Quiz paused - click to continue
+                        </p>
+                    `;
+                }
+
+                feedbackSection = `
+                    <div class="space-y-4">
+                        <div class="p-6 rounded-lg text-center text-lg font-semibold ${feedbackClass}">
+                            ${feedback.message}
+                        </div>
+                        <div class="text-center">
+                            ${actionButton}
+                        </div>
+                    </div>
+                `;
+            }
+
+            appDiv.innerHTML = `
+                <div class="max-w-4xl mx-auto">
+                    <!-- Header -->
+                    <div class="text-center mb-8">
+                        <h1 class="text-3xl font-bold text-gray-800 mb-2">
+                            ${projects[selectedProject].name}
+                        </h1>
+                        <div class="flex justify-center items-center space-x-8">
+                            <div class="text-lg">
+                                Question <span class="font-semibold">${currentQuestion + 1}</span> of 10
+                            </div>
+                            <div class="text-lg">
+                                Score: <span class="font-semibold text-blue-600">${score}</span>/100
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Progress Bar -->
+                    <div class="w-full bg-gray-200 rounded-full h-2 mb-8">
+                        <div 
+                            class="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                            style="width: ${progress}%"
+                        ></div>
+                    </div>
+
+                    <!-- Question -->
+                    <div class="bg-white rounded-lg shadow-lg p-8 mb-8">
+                        <h2 class="text-xl font-semibold text-gray-800 mb-6">
+                            Classify this requirement:
+                        </h2>
+                        <div class="bg-gray-50 p-6 rounded-lg border-l-4 border-blue-500">
+                            <p class="text-lg text-gray-700 leading-relaxed">
+                                "${currentReq.text}"
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Answer Buttons -->
+                    <div id="answer-buttons-section">
+                        ${!showFeedback ? `
+                            <div class="grid md:grid-cols-3 gap-6 mb-8">
+                                <button
+                                    data-answer-type="Functional"
+                                    class="bg-green-500 hover:bg-green-600 text-white p-6 rounded-lg font-semibold text-lg transition-colors duration-200"
+                                >
+                                    Functional Requirement
+                                </button>
+                                <button
+                                    data-answer-type="Non-functional"
+                                    class="bg-orange-500 hover:bg-orange-600 text-white p-6 rounded-lg font-semibold text-lg transition-colors duration-200"
+                                >
+                                    Non-functional Requirement
+                                </button>
+                                <button
+                                    data-answer-type="Domain"
+                                    class="bg-purple-500 hover:bg-purple-600 text-white p-6 rounded-lg font-semibold text-lg transition-colors duration-200"
+                                >
+                                    Domain Requirement
+                                </button>
+                            </div>
+                        ` : ''}
+                    </div>
+
+                    <!-- Feedback -->
+                    ${feedbackSection}
+
+                    <!-- Help Section -->
+                    <div class="bg-white rounded-lg shadow-lg p-6 mt-8">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4">Need Help?</h3>
+                        <div class="grid md:grid-cols-3 gap-4 text-sm">
+                            <div>
+                                <h4 class="font-semibold text-green-600 mb-2">Functional</h4>
+                                <p class="text-gray-600">What the system should do - features and functions</p>
+                            </div>
+                            <div>
+                                <h4 class="font-semibold text-orange-600 mb-2">Non-functional</h4>
+                                <p class="text-gray-600">How well the system should perform - quality attributes</p>
+                            </div>
+                            <div>
+                                <h4 class="font-semibold text-purple-600 mb-2">Domain</h4>
+                                <p class="text-gray-600">Domain-specific rules, regulations, and standards</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Add event listeners after rendering
+            if (!showFeedback) {
+                document.getElementById('answer-buttons-section').addEventListener('click', (event) => {
+                    const button = event.target.closest('button');
+                    if (button) {
+                        handleAnswer(button.dataset.answerType);
+                    }
+                });
+            } else {
+                const pauseBtn = document.getElementById('pause-btn');
+                if (pauseBtn) {
+                    pauseBtn.addEventListener('click', handlePause);
+                }
+                const continueBtn = document.getElementById('continue-btn');
+                if (continueBtn) {
+                    continueBtn.addEventListener('click', handleContinue);
+                }
+            }
+        }
+
+        // Event handler functions
+        function handleProjectSelect(projectKey) {
+            // Clear any existing countdown
+            if (timeoutId) {
+                clearInterval(timeoutId);
+            }
+            selectedProject = projectKey;
+            currentQuestion = 0;
+            score = 0;
+            feedback = null;
+            showFeedback = false;
+            quizComplete = false;
+            countdown = 5;
+            isPaused = false;
+            render();
+        }
+
+        function handleAnswer(selectedType) {
+            const currentReq = projects[selectedProject].requirements[currentQuestion];
+            const isCorrect = selectedType === currentReq.type;
+            
+            if (isCorrect) {
+                score += 10;
+                feedback = { correct: true, message: "Correct! +10 points" };
+            } else {
+                feedback = { 
+                    correct: false, 
+                    message: `Incorrect. This is a ${currentReq.type} requirement.`
+                };
+            }
+            
+            showFeedback = true;
+            countdown = 5;
+            isPaused = false;
+            
+            // Start countdown
+            startCountdown();
+            render();
+        }
+
+        function handlePause() {
+            isPaused = true;
+            if (timeoutId) {
+                clearInterval(timeoutId);
+            }
+            render();
+        }
+
+        function handleContinue() {
+            proceedToNext();
+        }
+
+        function proceedToNext() {
+            if (timeoutId) {
+                clearInterval(timeoutId);
+            }
+            
+            if (currentQuestion < 9) {
+                currentQuestion++;
+                showFeedback = false;
+                feedback = null;
+                isPaused = false;
+                countdown = 5;
+            } else {
+                quizComplete = true;
+            }
+            render();
+        }
+
+        function resetQuiz() {
+            if (timeoutId) {
+                clearInterval(timeoutId);
+            }
+            selectedProject = null;
+            currentQuestion = 0;
+            score = 0;
+            feedback = null;
+            showFeedback = false;
+            quizComplete = false;
+            countdown = 5;
+            isPaused = false;
+            render();
+        }
+
+        function startCountdown() {
+            const id = setInterval(() => {
+                if (isPaused) {
+                    clearInterval(id);
+                    return;
+                }
+                countdown--;
+                if (countdown <= 0) {
+                    clearInterval(id);
+                    proceedToNext();
+                }
+                render();
+            }, 1000);
+            timeoutId = id;
+        }
+
+        // Initial render
+        document.addEventListener('DOMContentLoaded', render);
+    </script>
+</body>
+</html>
